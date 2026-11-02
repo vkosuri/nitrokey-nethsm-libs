@@ -8,6 +8,18 @@ This repository packages Nitrokey's PKCS#11 module for x86-64 Linux. Choose the 
 | Rocky Linux 8 | `rockylinux/rockylinux:8` | 2.28 |
 | CentOS 7 | `centos:7` | 2.17 |
 
+## Build a tarball on this machine
+
+From this repository on any x86-64 Linux target in the table, run:
+
+```bash
+bash deploy.sh
+```
+
+The script detects the OS, installs its build dependencies (using sudo when needed), downloads upstream v3.0.1 and builds against the host's glibc. On CentOS 7 it redirects the retired CentOS package repositories to the vault. Allow network access to the package repositories, GitHub and the Rust toolchain server.
+
+The script prints the path to the verified `.tar.gz` in `dist/`. Extract it and run `sha256sum -c SHA256SUMS` inside the extracted directory. The archive contains the shared library, its checksum, configuration example, setup guide, README and both project licenses. Use the steps below to also exercise the library against a disposable NetHSM.
+
 ## Build and test
 
 Pull requests and pushes to `main` run all three builds. To run the matrix manually, select **Actions → Build and test shared libraries → Run workflow**, or run `gh workflow run build-shared-libs.yml`. The default upstream source is `v3.0.1`. Each build uses the upstream Cargo lockfile.

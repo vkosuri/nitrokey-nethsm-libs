@@ -42,7 +42,7 @@ jobs:
           version="snapshot-${GITHUB_SHA::12}"
           if [[ $GITHUB_REF_TYPE == tag ]]; then version=$GITHUB_REF_NAME; fi
           bundle="nethsm-pkcs11-libs-$version.zip"
-          zip -r "../$bundle" .
+          zip "../$bundle" */*.so sha256sums.txt
           core=${version%%+*}
           if [[ $core == *-* ]]; then echo "PRERELEASE=true" >> "$GITHUB_ENV"; fi
           echo "BUNDLE=$bundle" >> "$GITHUB_ENV"
