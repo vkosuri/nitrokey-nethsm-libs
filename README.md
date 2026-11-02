@@ -2,6 +2,27 @@
 
 Build the Nitrokey NetHSM development server from upstream source, then use this repository's PKCS#11 harness to test it from a separate Ubuntu 22.04 x86-64 client. The lab has three server hosts: CentOS 7, Rocky Linux 8 and Ubuntu 22.04. The client loads the same Ubuntu shared library for every test. An application calls PKCS#11 locally; the module sends the operation to the selected NetHSM over HTTPS.
 
+**Pick your operating system.** Each guide contains every command for that OS only:
+
+| Operating system | Roles | Complete guide |
+| --- | --- | --- |
+| Ubuntu 22.04 | Harness client and runner, lab server, library target, container host | [Ubuntu 22.04 guide](docs/os/ubuntu-22.04.md) |
+| Rocky Linux 8 | Lab server, library target, container host | [Rocky Linux 8 guide](docs/os/rockylinux-8.md) |
+| CentOS 7 | Lab server, library target, container host (end of life) | [CentOS 7 guide](docs/os/centos-7.md) |
+
+**Install with one command per OS.** [`deploy/<os>/`](deploy/README.md) has `install-server.sh`, `start-server.sh` and `install-client.sh` for each operating system:
+
+```bash
+sudo NETHSM_REF=<upstream tag> SSH_ACCOUNT=labrunner bash deploy/rockylinux-8/install-server.sh   # lab server
+bash deploy/ubuntu-22.04/install-client.sh                                                       # client module
+```
+
+From your workstation, [`deploy/remote.sh`](deploy/README.md#remote-machines-deploy-over-ssh) does the same over SSH. It detects each host's OS and runs the matching script there:
+
+```bash
+bash deploy/remote.sh server -e NETHSM_REF=v5.0 -e SSH_ACCOUNT=labrunner admin@hsm-centos7.lab admin@hsm-rocky8.lab admin@hsm-ubuntu22.lab
+```
+
 ## 1. Build and start the server
 
 On a dedicated lab server, clone the upstream NetHSM system software. Select the same upstream revision on all three servers and record its commit. Follow that revision's developer manual to install its OCaml, OPAM, Solo5 and host prerequisites and activate its OPAM switch. Then build and start the local development system from the upstream checkout:

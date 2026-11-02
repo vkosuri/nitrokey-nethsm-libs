@@ -21,6 +21,10 @@ libraries for: **Ubuntu 22.04 LTS**, **Rocky Linux 8** and **CentOS Linux 7**.
 > harness at a container host instead, name its unit `nethsm-native.service`
 > and set the GitHub environment's `NETHSM_PORT` to 9443.
 
+**Operating system guides:** [Ubuntu 22.04](os/ubuntu-22.04.md) · [Rocky Linux 8](os/rockylinux-8.md) · [CentOS 7](os/centos-7.md). OS-specific commands are only in those guides; this page covers what is the same everywhere.
+
+**Sections:** [1 Architecture](#1-architecture-in-one-page) · [2 Prerequisites](#2-platform-prerequisites) · [3 Host preparation](#3-server-host-preparation) · [4 Run the server](#4-running-nethsm-as-a-server) · [5 Firewall](#5-opening-the-firewall) · [6 Users, keys and clients](#6-users-keys-and-the-pkcs11-clients) · [7 Persistence](#7-persistence-backup-and-upgrades) · [8 Troubleshooting](#8-troubleshooting-quick-reference) · [9 Variables](#9-variable-index)
+
 ---
 
 ## 1. Architecture in one page
@@ -107,62 +111,17 @@ chmod 0700 /var/lib/nethsm
 `/var/lib/nethsm` is the encrypted key store and must survive every upgrade;
 `/opt/nethsm` is build scratch space and can be wiped at any time.
 
-### 3.2 Ubuntu 22.04
+### 3.2 Install Docker and host packages (per operating system)
 
-```bash
-apt-get update
-apt-get install -y ca-certificates curl git gnupg
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  -o /etc/apt/keyrings/docker.asc
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] \
-  https://download.docker.com/linux/ubuntu jammy stable" \
-  > /etc/apt/sources.list.d/docker.list
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io
-systemctl enable --now docker
-```
+The packages, repositories and Docker installation differ for each OS. Follow section *Container-based NetHSM server* in your OS guide, then continue here:
 
-### 3.3 Rocky Linux 8 and CentOS Linux 7
+| OS | Guide section |
+| --- | --- |
+| Ubuntu 22.04 | [5. Container-based NetHSM server](os/ubuntu-22.04.md#5-container-based-nethsm-server-optional) |
+| Rocky Linux 8 | [4. Container-based NetHSM server](os/rockylinux-8.md#4-container-based-nethsm-server-optional) |
+| CentOS 7 | [4. Container-based NetHSM server](os/centos-7.md#4-container-based-nethsm-server-optional) (vault repositories, Docker 26.1.4) |
 
-**CentOS 7 first: repositories must be repointed to the vault archive**
-(`mirrorlist.centos.org` no longer resolves; the vault is frozen and receives
-no security updates — compensate with the network controls in §5):
-
-```bash
-sed -i -e 's|^mirrorlist=|#mirrorlist=|g' \
-       -e 's|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' \
-       /etc/yum.repos.d/CentOS-*.repo
-yum clean all && yum makecache
-```
-
-Both platforms (dnf on Rocky 8, yum on CentOS 7 — the commands are the same
-shape):
-
-```bash
-yum install -y git curl tar chrony firewalld \
-  yum-utils device-mapper-persistent-data lvm2
-systemctl enable --now firewalld chronyd
-```
-
-Docker: on **Rocky 8** use the `dnf config-manager --add-repo` variant of the
-CentOS repo below (`rocky` replaces `centos` in the URL works too —
-`https://download.docker.com/linux/centos/docker-ce.repo` covers RHEL
-clones). On **CentOS 7**, the last published engine build is **26.1.4**:
-
-```bash
-yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-yum install -y docker-ce docker-ce-cli containerd.io
-systemctl enable --now docker
-docker version   # 26.1.4 is the final el7 release
-```
-
-> **Appliance caution.** If the target runs an F5 BIG-IP-style prompt
-> (`[root@host:Active:Standalone]`), it is a sealed appliance that merely
-> ships a CentOS 7 userland — do not install Docker/NetHSM on it. Use a
-> dedicated general-purpose VM.
-
-### 3.4 Container runtime sanity (all OSes)
+### 3.3 Container runtime sanity (all OSes)
 
 ```bash
 docker info | head -5
@@ -248,22 +207,7 @@ once via `nitropy nethsm --host $NETHSM_HOST set-backup-passphrase`.
 
 ## 5. Opening the firewall
 
-**firewalld (Rocky 8, CentOS 7):**
-
-```bash
-# restricted to application subnets:
-firewall-cmd --permanent --add-rich-rule='rule family="ipv4" \
-  source address="10.20.30.0/24" port port="9443" protocol="tcp" accept'
-firewall-cmd --reload
-firewall-cmd --list-rich-rules
-```
-
-**ufw (Ubuntu 22.04):**
-
-```bash
-ufw allow from 10.20.30.0/24 to any port 9443 proto tcp
-ufw status verbose
-```
+Open host port 9443 only to the application subnets. The commands are in your OS guide: `ufw` on [Ubuntu 22.04](os/ubuntu-22.04.md#34-firewall), `firewalld` on [Rocky Linux 8](os/rockylinux-8.md#24-firewall) and [CentOS 7](os/centos-7.md#24-firewall). Those examples use the harness port 8443; use 9443 for the container deployment.
 
 **Docker bypass warning.** Published container ports are forwarded through
 the Docker iptables chains and *bypass the INPUT rules* of firewalld/ufw.
@@ -302,25 +246,15 @@ Metrics, Backup, Unlock.
 
 ### 6.2 Install the CI-built shared libraries
 
-Download the per-OS `.so` from the GitHub Release (or run artifact) of this
-repository, verify it loads on the target OS, then install:
+Each OS needs its own build of the module. Its glibc ceiling is 2.35 on Ubuntu 22.04, 2.28 on Rocky Linux 8 and 2.17 on CentOS 7. Install it with the script or the manual steps in your OS guide:
 
-| Target OS | Destination directory |
-| --- | --- |
-| Ubuntu 22.04 | `/usr/lib/x86_64-linux-gnu/libnethsm_pkcs11.so` |
-| Rocky Linux 8 | `/usr/lib64/libnethsm_pkcs11.so` |
-| CentOS Linux 7 | `/usr/lib64/libnethsm_pkcs11.so` |
+| OS | One command | Guide section |
+| --- | --- | --- |
+| Ubuntu 22.04 | `bash deploy/ubuntu-22.04/install-client.sh` | [4. Client module](os/ubuntu-22.04.md#4-client-module) |
+| Rocky Linux 8 | `bash deploy/rockylinux-8/install-client.sh` | [3. Client module](os/rockylinux-8.md#3-client-module) |
+| CentOS 7 | `bash deploy/centos-7/install-client.sh` | [3. Client module](os/centos-7.md#3-client-module) |
 
-```bash
-# the artifact name encodes the build OS, e.g.
-#   nethsm-pkcs11-3.0.1-centos-7-x86_64-glibc.so
-bash ci/check-glibc-compat.sh nethsm-pkcs11-*-centos-7-x86_64-glibc.so 2.17
-sudo install -m 0644 nethsm-pkcs11-*.so /usr/lib64/libnethsm_pkcs11.so
-```
-
-The glibc check is what makes CentOS 7 usable: upstream release binaries
-are built on modern CI images and may require symbols newer than 2.17 —
-the CI in this repository builds *on* CentOS 7 precisely to avoid that.
+Upstream release binaries are built on modern CI images and may need glibc symbols newer than CentOS 7's 2.17. This repository builds on each target OS to avoid that.
 
 ### 6.3 Module configuration
 
@@ -351,11 +285,10 @@ fingerprint pin *is* the TLS trust anchor here.
 End-to-end proof from a client:
 
 ```bash
-yum install -y epel-release openssl-pkcs11 opensc   # CentOS 7 / Rocky 8
-export APP_ALPHA_PASS='********'
-pkcs11-tool --module /usr/lib64/libnethsm_pkcs11.so --list-slots
-pkcs11-tool --module /usr/lib64/libnethsm_pkcs11.so \
-  --login --pin "$APP_ALPHA_PASS" --list-mechanisms
+export APP_ALPHA_PASS='********'   # pkcs11-tool comes from the opensc package on every OS
+pkcs11-tool --module /usr/local/lib/nitrokey/libnethsm_pkcs11.so --list-slots
+pkcs11-tool --module /usr/local/lib/nitrokey/libnethsm_pkcs11.so \
+  --login --pin env:APP_ALPHA_PASS --list-mechanisms   # keeps the PIN out of ps
 ```
 
 Windows clients use the DLL + the same YAML via `P11NETHSM_CONFIG_FILE`;
@@ -398,7 +331,7 @@ Losing the Unlock Passphrase means the data store cannot be opened again.
 | `GLIBC_2.xx not found` on load | Wrong artifact for the OS | Use the per-OS build; run `ci/check-glibc-compat.sh` |
 | HTTP 403 from API | Operator missing the key's tag | Align `add-user-tag` / `add-key-tag` |
 | HTTP 401 from API | Passphrase / `env:` variable wrong | Check credentials and env of the service user |
-| yum fails on CentOS 7 | mirrorlist retired | vault `sed` fix from §3.3 |
+| yum fails on CentOS 7 | mirrorlist retired | Vault repositories: [CentOS 7 guide](os/centos-7.md#23-install-by-hand) |
 
 ---
 
