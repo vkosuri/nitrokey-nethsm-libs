@@ -11,7 +11,7 @@ systemctl is-active nethsm-native.service
 sudo ss -lntp
 ```
 
-Expect `active` and a listener on an address reachable from the Ubuntu client. Record the DNS name and HTTPS port. If the unit is missing, obtain the native runtime and its service definition from the lab owner before proceeding. For startup failures inspect `sudo journalctl -u nethsm-native.service -n 60`.
+Expect `active` and a listener on an address reachable from the Ubuntu client. Record the DNS name and HTTPS port. If the unit is missing, build the upstream server as described in the [README](../README.md#1-build-and-start-the-server) and install it with `sudo bash server/install-native-unit.sh SSH_ACCOUNT`, setting `NETHSM_SRC` and the run account in `/etc/nethsm-native/nethsm-native.env`. For startup failures inspect `sudo journalctl -u nethsm-native.service -n 60`.
 
 From a trusted administration machine with the lab CA or independently verified self-signed certificate, check the endpoint:
 

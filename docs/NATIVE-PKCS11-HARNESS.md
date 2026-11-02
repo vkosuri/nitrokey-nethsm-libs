@@ -12,9 +12,9 @@ Use one dedicated Ubuntu 22.04 x86-64 machine as the application client and GitH
 
 ## Prepare the servers
 
-Each server must already have a working native NetHSM runtime, a systemd unit named `nethsm-native.service`, and a provisioned test operator and RSA PKCS#1 signing key. Use a different test key per server. Arrange for each service to reach Operational state after startup or unlock it through your normal lab procedure. The server software and native unit are lab prerequisites. The repository builds the client module. Its Docker-based service example is unsuitable for this harness.
+Each server needs a built upstream NetHSM checkout, the `nethsm-native.service` unit from [`server/`](../server/) (install it with `sudo bash server/install-native-unit.sh SSH_ACCOUNT`), and a provisioned test operator and RSA PKCS#1 signing key. Use a different test key per server. The harness requires the instance to reach `Operational` after startup. If it comes up `Locked`, unlock it through your normal lab procedure and rerun. The container deployment in [NETWORK-HSM-SERVER-SETUP.md](NETWORK-HSM-SERVER-SETUP.md) is a separate production-style setup, not this lab.
 
-Allow the lab SSH account to start only the native unit using noninteractive sudo. The Ubuntu client must reach each server's SSH service and NetHSM HTTPS port using the same hostname. The workflow checks the remote OS before starting the unit, leaves the service running, and performs all PKCS#11 operations on the Ubuntu client.
+The installer allows the lab SSH account to start only the native unit using noninteractive sudo. The Ubuntu client must reach each server's SSH service and NetHSM HTTPS port using the same hostname. The workflow checks the remote OS before starting the unit, leaves the service running, and performs all PKCS#11 operations on the Ubuntu client.
 
 ## Prepare the client and GitHub
 
@@ -25,4 +25,4 @@ Allow the lab SSH account to start only the native unit using noninteractive sud
 
 ## Passing result
 
-Each matrix job checks systemd status and TCP connectivity, loads the same Ubuntu module, initializes PKCS#11, enumerates slots and tokens, selects the token, lists mechanisms, logs in, and signs a fresh challenge. OpenSSL must report `Verified OK` with that server's pinned public key. Slot/token information is the PKCS#11 view of the operator's configured partition. The test does not enumerate every administrative namespace.
+Each matrix job checks systemd status and waits for the API to report `Operational` over a connection that matches the pinned certificate fingerprint. It then loads the same Ubuntu module and initializes PKCS#11, and requires the configured token label and the `SHA256-RSA-PKCS` mechanism. It logs in and signs a fresh challenge, and OpenSSL must report `Verified OK` with that server's pinned public key. Finally it checks that a wrong PIN and a wrong certificate fingerprint are both rejected. Slot/token information is the PKCS#11 view of the operator's configured partition. The test does not enumerate every administrative namespace.
