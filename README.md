@@ -90,6 +90,8 @@ Local output is under `dist/<target>/`. In Actions, download the corresponding `
 
 ## Releases and versioning
 
+See the [changelog](CHANGELOG.md) for pending changes and release history. When cutting a release, move the corresponding entries from `Unreleased` into a section with the version and release date before tagging that commit.
+
 Repository release tags use `vMAJOR.MINOR.PATCH`. The version describes the packaging contract, which covers supported targets, artifact names, archive layout and documented build commands. Increment MAJOR for an incompatible change, MINOR for compatible new functionality and PATCH for a compatible fix. An upstream module update is versioned according to its impact on consumers. Its own version remains visible in each library filename.
 
 To publish a release, tag the reviewed commit on `main` and push the tag. For example, for an initial release candidate:
