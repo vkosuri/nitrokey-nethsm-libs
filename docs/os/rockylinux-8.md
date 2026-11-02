@@ -64,7 +64,7 @@ Each step matches what the script does, so you can follow or debug it:
 
 ```bash
 sudo dnf -y install gcc gcc-c++ make m4 pkgconf-pkg-config git git-daemon curl rsync patch \
-    unzip bzip2 gmp-devel socat iproute tar sudo util-linux
+    unzip bzip2 gmp-devel socat iproute tar sudo util-linux diffutils
 sudo useradd --system --create-home --home-dir /opt/nethsm --shell /bin/bash nethsm
 curl -fsSLo opam https://github.com/ocaml/opam/releases/download/2.2.1/opam-2.2.1-x86_64-linux
 sudo install -m 0755 opam /usr/local/bin/opam
@@ -217,6 +217,7 @@ curl -sk https://127.0.0.1:9443/api/v1/health/state     # {"state":"Unprovisione
 | A deploy script says the host is not Rocky 8 | Use the folder for the host's OS, or `deploy/remote.sh`, which picks it for you |
 | `Could not resolve host: mirrors.rockylinux.org` | Allow outbound HTTPS to the Rocky mirrors, or configure a local mirror in `/etc/yum.repos.d/` |
 | `git-daemon` missing during `make run` | `sudo dnf -y install git-daemon` |
+| opam: `Missing dependencies ... diff` | `sudo dnf -y install diffutils` |
 | The service starts but no TAP device appears | Check `journalctl -u nethsm-native.service`. `setup-net-dev.sh` needs root, which the unit has |
 | `/dev/kvm` permission denied | Add `NETHSM_RUN_USER` to the `kvm` group, or set `NETHSM_RUN_USER=root` |
 | `GLIBC_2.xx not found` when loading the module | Install the `rockylinux-8` build |

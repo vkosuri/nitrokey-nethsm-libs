@@ -21,5 +21,5 @@ require_os centos 7
 centos7_devtoolset
 log 'Installing build and runtime packages'
 as_root yum -y install gcc gcc-c++ make m4 pkgconfig git curl rsync patch \
-    unzip bzip2 gmp-devel socat iproute tar sudo util-linux which git-daemon
+    unzip bzip2 gmp-devel socat iproute tar sudo util-linux which git-daemon diffutils
 install_server

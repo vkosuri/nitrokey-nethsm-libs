@@ -34,6 +34,13 @@ centos7_devtoolset() {
     as_root yum -y --disablerepo=centos-sclo-sclo \
         --setopt='centos-sclo-rh.baseurl=https://vault.centos.org/7.9.2009/sclo/$basearch/rh/' \
         install devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-make
+    # centos-sclo-sclo has no working vault mirror and would break every later
+    # yum call, so turn it off for good (centos-sclo-rh, used above, stays on).
+    local scl=/etc/yum.repos.d/CentOS-SCLo-scl.repo
+    if [[ -f $scl ]]; then
+        as_root sed -i -e '/^\[centos-sclo-sclo\]/,/^\[/{/^enabled=/d}' \
+            -e '/^\[centos-sclo-sclo\]/a enabled=0' "$scl"
+    fi
     export PATH="/opt/rh/devtoolset-11/root/usr/bin:$PATH"
 }
 

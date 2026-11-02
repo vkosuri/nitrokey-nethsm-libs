@@ -79,9 +79,11 @@ sudo sed -Ei -e 's|^mirrorlist=|#mirrorlist=|' \
 sudo yum -y --disablerepo=centos-sclo-sclo \
   --setopt='centos-sclo-rh.baseurl=https://vault.centos.org/7.9.2009/sclo/$basearch/rh/' \
   install devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-make
+sudo yum-config-manager --disable centos-sclo-sclo 2>/dev/null ||   # no working vault mirror
+  sudo sed -i -e '/^\[centos-sclo-sclo\]/,/^\[/{/^enabled=/d}' -e '/^\[centos-sclo-sclo\]/a enabled=0' /etc/yum.repos.d/CentOS-SCLo-scl.repo
 # 3. Build and runtime packages
 sudo yum -y install gcc gcc-c++ make m4 pkgconfig git git-daemon curl rsync patch \
-  unzip bzip2 gmp-devel socat iproute tar sudo util-linux which
+  unzip bzip2 gmp-devel socat iproute tar sudo util-linux which diffutils
 # 4. Account, opam, upstream build
 sudo useradd --system --create-home --home-dir /opt/nethsm --shell /bin/bash nethsm
 curl -fsSLo opam https://github.com/ocaml/opam/releases/download/2.2.1/opam-2.2.1-x86_64-linux
@@ -238,7 +240,7 @@ Published Docker ports bypass `firewalld` INPUT rules. Restrict them in the `DOC
 | Symptom | Fix |
 | --- | --- |
 | `Could not resolve host: mirrorlist.centos.org` | Apply the vault `sed` from 2.3. The scripts do this themselves |
-| `centos-sclo-*` repository errors | Repeat the vault `sed` after installing `centos-release-scl` (2.3, step 2) |
+| `centos-sclo-*` repository errors, or yum stops with "One of the configured repositories failed" | Repeat the vault `sed` after installing `centos-release-scl`, then disable `centos-sclo-sclo` (2.3, step 2) |
 | A deploy script says the host is not CentOS 7 | Use the folder for the host's OS, or `deploy/remote.sh`, which picks it for you |
 | OCaml or C dependency fails to compile | Check that `gcc --version` reports 11 inside the build (devtoolset-11 on `PATH`), then compare with the upstream developer manual |
 | `git-daemon` missing during `make run` | `sudo yum -y install git-daemon` |

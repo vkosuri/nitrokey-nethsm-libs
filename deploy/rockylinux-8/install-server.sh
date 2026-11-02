@@ -20,5 +20,5 @@ require_os rocky 8
 
 log 'Installing build and runtime packages'
 as_root dnf -y install gcc gcc-c++ make m4 pkgconf-pkg-config git curl rsync patch \
-    unzip bzip2 gmp-devel socat iproute tar sudo util-linux git-daemon
+    unzip bzip2 gmp-devel socat iproute tar sudo util-linux git-daemon diffutils
 install_server
