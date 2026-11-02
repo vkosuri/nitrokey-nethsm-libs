@@ -1,0 +1,51 @@
+name: Ubuntu 22.04 client against three NetHSM servers
+on: workflow_dispatch
+permissions:
+  contents: read
+
+jobs:
+  build-client:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: [self-hosted, linux, x64, nethsm-ubuntu22-client]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the Ubuntu client module once
+        run: |
+          . /etc/os-release
+          [[ $ID == ubuntu && $VERSION_ID == 22.04 ]]
+          bash deploy.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-harness-client
+          path: dist/ubuntu-22.04/*.so
+          if-no-files-found: error
+
+  harness:
+    needs: build-client
+    name: Ubuntu 22.04 client / ${{ matrix.server }} server
+    runs-on: [self-hosted, linux, x64, nethsm-ubuntu22-client]
+    environment: nethsm-${{ matrix.server }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [centos-7, rockylinux-8, ubuntu-22.04]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-harness-client
+          path: harness-lib
+      - name: Start remote service and test it from this client
+        env:
+          SSH_TARGET: ${{ vars.SSH_TARGET }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          NETHSM_PORT: ${{ vars.NETHSM_PORT || '8443' }}
+          SERVER_OS: ${{ matrix.server }}
+        run: bash ci/test-server-flavour.sh
