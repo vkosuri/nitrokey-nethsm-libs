@@ -19,7 +19,15 @@ make run
 
 The network setup command creates TAP interfaces on the server host. With upstream defaults, the development instance answers at `https://192.168.1.1/api/v1/health/state` from that host. For a three-server lab, configure a distinct client-reachable HTTPS endpoint on each host and a certificate trusted by the Ubuntu client. The harness uses the SSH hostname for HTTPS and takes the port from `NETHSM_PORT`. Set it to the actual endpoint port; the harness default is 8443.
 
-`make run` runs in the foreground. For automated tests, the lab administrator must provide a native systemd unit named `nethsm-native.service` that starts the configured runtime. Stop the foreground run before starting the unit. This repository's `deploy.sh` builds the **client module**. The native server builds on the three host distributions have not been verified in this repository. [Nitrokey server source](https://github.com/Nitrokey/nethsm) · [Upstream local build and run instructions](https://github.com/Nitrokey/nethsm/blob/main/docs/developer-documentation.md#local-build)
+`make run` runs in the foreground. For automated tests, install the supervised unit from this repository on each server, then stop the foreground run and start the unit:
+
+```bash
+sudo bash server/install-native-unit.sh labrunner   # SSH account used by the harness
+sudoedit /etc/nethsm-native/nethsm-native.env       # NETHSM_SRC, run account, OPAM switch
+sudo systemctl start nethsm-native.service
+```
+
+[`nethsm-native.service`](server/nethsm-native.service) runs the upstream network setup and `make run` inside the OPAM environment. It also forwards `NETHSM_LISTEN_PORT` (default 8443) to the development instance at `192.168.1.1:443` with `socat`, so install `socat` first. The forward passes TLS through unchanged, so the client's pinned certificate fingerprint still identifies the instance. The installer limits the SSH account's sudo rights to starting this one unit. This repository's `deploy.sh` builds the **client module**. The native server builds on the three host distributions have not been verified in this repository. [Nitrokey server source](https://github.com/Nitrokey/nethsm) · [Upstream local build and run instructions](https://github.com/Nitrokey/nethsm/blob/main/docs/developer-documentation.md#local-build)
 
 ## 2. Create the harness
 
@@ -75,7 +83,7 @@ The script prints the path to the verified `.tar.gz` in `dist/`. Extract it and 
 
 ## Build and test
 
-Pull requests and pushes to `main` run all three builds. To run the matrix manually, select **Actions ΓåÆ Build and test shared libraries ΓåÆ Run workflow**, or run `gh workflow run build-shared-libs.yml`. The default upstream source is `v3.0.1`. Each build uses the upstream Cargo lockfile.
+Pull requests and pushes to `main` run all three builds. To run the matrix manually, select **Actions → Build and test shared libraries ΓåÆ Run workflow**, or run `gh workflow run build-shared-libs.yml`. The default upstream source is `v3.0.1`. Each build uses the upstream Cargo lockfile.
 
 To reproduce one job on an x86-64 Linux host with Docker, run these commands from the repository root. Use a fresh checkout for the source clone.
 
