@@ -1,0 +1,62 @@
+name: Release shared libraries
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release tag
+        if: github.ref_type == 'tag'
+        run: python3 ci/check-release-tag.py "$GITHUB_REF_NAME"
+  build:
+    needs: version
+    uses: ./.github/workflows/build-shared-libs.yml
+  bundle:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shared-libs-*
+          merge-multiple: true
+          path: dist
+      - name: Package all tested libraries
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          for target in ubuntu-22.04 rockylinux-8 centos-7; do
+            libs=("$target"/*.so)
+            [[ ${#libs[@]} == 1 && -s ${libs[0]} ]]
+            chmod 755 "${libs[0]}"
+          done
+          sha256sum */*.so > sha256sums.txt
+          version="snapshot-${GITHUB_SHA::12}"
+          if [[ $GITHUB_REF_TYPE == tag ]]; then version=$GITHUB_REF_NAME; fi
+          bundle="nethsm-pkcs11-libs-$version.zip"
+          zip -r "../$bundle" .
+          core=${version%%+*}
+          if [[ $core == *-* ]]; then echo "PRERELEASE=true" >> "$GITHUB_ENV"; fi
+          echo "BUNDLE=$bundle" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BUNDLE }}
+          path: ${{ env.BUNDLE }}
+      - uses: softprops/action-gh-release@v2
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        with:
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ env.BUNDLE }}
+            dist/*/*.so
+            dist/sha256sums.txt

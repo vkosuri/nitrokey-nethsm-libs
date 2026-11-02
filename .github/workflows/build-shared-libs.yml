@@ -1,0 +1,50 @@
+name: Build and test shared libraries
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pkcs11_ref:
+        description: Nitrokey/nethsm-pkcs11 tag or commit
+        default: v3.0.1
+        type: string
+  workflow_call:
+    inputs:
+      pkcs11_ref:
+        default: v3.0.1
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            image: ubuntu:22.04
+          - os: rockylinux-8
+            image: rockylinux/rockylinux:8
+          - os: centos-7
+            image: centos:7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Nitrokey/nethsm-pkcs11
+          ref: ${{ inputs.pkcs11_ref || 'v3.0.1' }}
+          path: nethsm-pkcs11
+          persist-credentials: false
+      - name: Build and verify an RSA signature in the target OS
+        run: bash ci/run-target.sh "${{ matrix.image }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shared-libs-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: error

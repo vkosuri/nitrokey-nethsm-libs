@@ -1,0 +1,49 @@
+# NetHSM PKCS#11 module configuration template.
+# Install as /etc/nitrokey/p11nethsm.conf (Linux) or point
+# P11NETHSM_CONFIG_FILE at it (any OS). chmod 0600 - it holds credentials.
+#
+# Module search order (config files are merged):
+#   /etc/nitrokey/p11nethsm.conf
+#   /usr/local/etc/nitrokey/p11nethsm.conf
+#   $HOME/.config/nitrokey/p11nethsm.conf
+#
+# sha256_fingerprints: output of
+#   openssl x509 -in nethsm-api.pem -noout -fingerprint -sha256
+# (colons and case are normalized by the module). Do NOT set
+# danger_insecure_cert: true in production.
+
+log_level: Info
+
+slots:
+  - label: LocalHSM
+    description: Corporate NetHSM
+    operator:
+      username: "app-alpha"
+      password: "env:APP_ALPHA_PASS"   # plain value or env: reference, or use C_Login
+    # administrator:                   # optional; used for operations needing it
+    #   username: "admin"
+    #   password: "env:NETHSM_ADMIN_PASS"
+    instances:
+      - url: "https://hsm01.example.org:9443/api/v1"
+        max_idle_connections: 10
+        sha256_fingerprints:
+          - "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:11:22:33:44:55:66:77:88:99:AA"
+        retries:
+          count: 3
+          delay_seconds: 1
+        tcp_keepalive:
+          time_seconds: 600
+          interval_seconds: 60
+          retries: 3
+        timeout_seconds: 10
+
+# Second, fully isolated NetHSM cluster = another slot:
+# slots:
+#   - label: BackupHSM
+#     operator:
+#       username: "app-alpha-dr"
+#       password: "env:APP_ALPHA_DR_PASS"
+#     instances:
+#       - url: "https://hsm02.example.org:9443/api/v1"
+#         sha256_fingerprints:
+#           - "..."
