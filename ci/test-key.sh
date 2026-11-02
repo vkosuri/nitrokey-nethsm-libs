@@ -28,10 +28,29 @@ slots:
         danger_insecure_cert: true
 EOF
 p11=(pkcs11-tool --module "$module" --slot 0)
-"${p11[@]}" --keypairgen --key-type rsa:2048 --label cikey --usage-sign
+"${p11[@]}" --keypairgen --key-type rsa:2048 --label cikey --usage-sign --usage-decrypt
 printf 'NetHSM artifact test\n' > message
 "${p11[@]}" --sign --mechanism SHA256-RSA-PKCS --label cikey \
     --input-file message --output-file signature
 "${p11[@]}" --read-object --type pubkey --label cikey --output-file public.der
 openssl pkey -pubin -inform DER -in public.der -out public.pem
 openssl dgst -sha256 -verify public.pem -signature signature message
+
+# Encrypt binary input outside the module and decrypt it through PKCS#11.
+printf '\000\377NetHSM\000payload\n' > plaintext
+openssl pkeyutl -encrypt -pubin -inkey public.pem -pkeyopt rsa_padding_mode:pkcs1 \
+    -in plaintext -out ciphertext
+"${p11[@]}" --decrypt --mechanism RSA-PKCS --label cikey \
+    --input-file ciphertext --output-file recovered
+sha256sum plaintext | sed 's/  plaintext$/  recovered/' > expected.sha256
+sha256sum -c expected.sha256
+
+# Destroy the token key, then check visibility from a new session.
+"${p11[@]}" --list-objects --type privkey > before-delete
+grep -Eq 'label:[[:space:]]+cikey[[:space:]]*$' before-delete
+"${p11[@]}" --delete-object --type privkey --label cikey
+"${p11[@]}" --list-objects --type privkey > after-delete
+if grep -Eq 'label:[[:space:]]+cikey[[:space:]]*$' after-delete; then
+    echo 'Deleted private key is still visible in a new session' >&2
+    exit 1
+fi

@@ -19,7 +19,7 @@ git clone --depth 1 --branch v3.0.1 https://github.com/Nitrokey/nethsm-pkcs11.gi
 bash ci/run-target.sh ubuntu:22.04
 ```
 
-Substitute another image from the table to test that target. The script starts a disposable NetHSM simulator with no published port. It compiles the module inside the target OS, checks the staged library's glibc requirements, then loads that same file with `pkcs11-tool`. The test generates a 2048-bit RSA key pair, signs a message and verifies the signature with OpenSSL using the simulator's public key. The simulator and test key are removed when the run exits.
+Substitute another image from the table to test that target. The script starts a disposable NetHSM simulator with no published port. It compiles the module inside the target OS, checks the staged library's glibc requirements, then loads that same file with `pkcs11-tool`. The test generates a 2048-bit RSA key pair, signs a message and verifies the signature with OpenSSL using the simulator's public key. It also encrypts a binary payload with OpenSSL, decrypts it through the module and compares the recovered bytes by SHA-256. Finally, it deletes the private key and confirms that a new session no longer lists it. The simulator is removed when the run exits.
 
 Local output is under `dist/<target>/`. In Actions, download the corresponding `shared-libs-<target>` artifact. To configure the library for your own NetHSM, see the [server setup guide](docs/NETWORK-HSM-SERVER-SETUP.md) and [module configuration example](examples/p11nethsm.conf.example).
 
