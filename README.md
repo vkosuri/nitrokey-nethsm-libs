@@ -1,8 +1,59 @@
-# NetHSM PKCS#11 shared libraries
+# Build a Nitrokey NetHSM server lab and test it through PKCS#11
 
-**Setting up one Ubuntu client and three NetHSM servers?** Start with [00 · Set up the NetHSM lab](docs/00-START-HERE.md) and follow the numbered pages in order.
+Build the Nitrokey NetHSM development server from upstream source, then use this repository's PKCS#11 harness to test it from a separate Ubuntu 22.04 x86-64 client. The lab has three server hosts: CentOS 7, Rocky Linux 8 and Ubuntu 22.04. The client loads the same Ubuntu shared library for every test. An application calls PKCS#11 locally; the module sends the operation to the selected NetHSM over HTTPS.
 
-This repository packages Nitrokey's PKCS#11 module for x86-64 Linux. Choose the artifact built for your distribution. Each filename includes the upstream module version, distribution and architecture.
+## 1. Build and start the server
+
+On a dedicated lab server, clone the upstream NetHSM system software. Select the same upstream revision on all three servers and record its commit. Follow that revision's developer manual to install its OCaml, OPAM, Solo5 and host prerequisites and activate its OPAM switch. Then build and start the local development system from the upstream checkout:
+
+```bash
+git clone --recursive https://github.com/Nitrokey/nethsm.git
+cd nethsm
+git rev-parse HEAD
+# After setting up the OPAM switch described in this checkout's developer manual:
+eval "$(opam env)"
+make -j"$(nproc)" build
+sudo tools/setup-net-dev.sh
+make run
+```
+
+The network setup command creates TAP interfaces on the server host. With upstream defaults, the development instance answers at `https://192.168.1.1/api/v1/health/state` from that host. For a three-server lab, configure a distinct client-reachable HTTPS endpoint on each host and a certificate trusted by the Ubuntu client. The harness uses the SSH hostname for HTTPS and takes the port from `NETHSM_PORT`. Set it to the actual endpoint port; the harness default is 8443.
+
+`make run` runs in the foreground. For automated tests, the lab administrator must provide a native systemd unit named `nethsm-native.service` that starts the configured runtime. Stop the foreground run before starting the unit. This repository's `deploy.sh` builds the **client module**. The native server builds on the three host distributions have not been verified in this repository. [Nitrokey server source](https://github.com/Nitrokey/nethsm) · [Upstream local build and run instructions](https://github.com/Nitrokey/nethsm/blob/main/docs/developer-documentation.md#local-build)
+
+## 2. Create the harness
+
+| Step | Where | What to do |
+| --- | --- | --- |
+| [00 · Plan the lab](docs/00-START-HERE.md) | All hosts | Assign one Ubuntu client and a separate endpoint to each server. |
+| [01 · Start and provision servers](docs/01-START-SERVERS.md) | Each server | Start the service, confirm the API reports `Operational`, and prepare an operator and a distinct RSA signing key. |
+| [02 · Install the client library](docs/02-INSTALL-CLIENT.md) | Ubuntu client | Build or extract the Ubuntu module, install it at `/usr/local/lib/nitrokey/libnethsm_pkcs11.so`, and check its dependencies. |
+| [03 · Configure profiles](docs/03-CONFIGURE-PROFILES.md) | Ubuntu client | Create one profile per server with its endpoint, TLS fingerprint, operator, key label and trusted public key. |
+| [04 · Verify PKCS#11](docs/04-VERIFY-PKCS11.md) | Ubuntu client | Initialize the module, inspect slots and tokens, log in, sign a fresh challenge and verify the signature. |
+| [05 · Run GitHub Actions](docs/05-RUN-GITHUB-ACTIONS.md) | GitHub and Ubuntu client | Register the client runner and configure each server's SSH identity, host key and port. |
+
+## 3. Run the server tests
+
+After completing steps 01–03, run this from **this repository's root on the Ubuntu client**:
+
+```bash
+(
+  set -e
+  module=/usr/local/lib/nitrokey/libnethsm_pkcs11.so
+  for server in centos-7 rockylinux-8 ubuntu-22.04; do
+    profile="/etc/nethsm-harness/$server"
+    echo "Testing $server"
+    P11NETHSM_CONFIG_FILE="$profile/p11nethsm.conf" \
+      bash ci/test-remote-nethsm.sh "$module" "$profile"
+  done
+)
+```
+
+Expect **three `Verified OK` results**, one against each server's trusted public key. Once the workflow is on the default branch and the lab is configured, run `gh workflow run native-nethsm.yml --ref main`. The workflow builds the Ubuntu module once, starts each remote service over SSH, and performs all PKCS#11 calls from the client. [Harness script](ci/test-remote-nethsm.sh) · [GitHub Actions workflow](.github/workflows/native-nethsm.yml) · [Nitrokey PKCS#11 configuration](https://docs.nitrokey.com/nethsm/pkcs11-setup)
+
+## Client library packages
+
+This repository also packages Nitrokey's PKCS#11 module for applications running directly on each supported x86-64 Linux distribution.
 
 | Build target | Container image | Maximum glibc |
 | --- | --- | --- |
