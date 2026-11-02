@@ -21,7 +21,7 @@ grep -qx 'OPAMSWITCH=nethsm' /etc/nethsm-native/nethsm-native.env
 grep -q '^labrunner ALL=(root) NOPASSWD: .*systemctl start nethsm-native.service$' /etc/sudoers.d/nethsm-harness
 opam_as_nethsm() { runuser -u nethsm -- env HOME=/opt/nethsm OPAMROOT=/opt/nethsm/opam "$@"; }
 opam_as_nethsm opam exec --switch=nethsm -- ocaml -version
-runuser -u nethsm -- git -C /opt/nethsm/src describe --tags
+runuser -u nethsm -- bash -c 'cd /opt/nethsm/src && git describe --tags'   # git 1.8 (CentOS 7) has no -C
 test -x /opt/nethsm/src/tools/setup-net-dev.sh
 echo '--- wrong OS is refused'
 for other in ubuntu-22.04 rockylinux-8 centos-7; do

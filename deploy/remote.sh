@@ -62,7 +62,7 @@ os_folder() {
 # upload HOST: copy the tracked repository files (and a local client tarball).
 upload() {
     local files
-    if git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if (cd "$repo" && git rev-parse --is-inside-work-tree) >/dev/null 2>&1; then  # no git -C: CentOS 7 has git 1.8
         files=$(cd "$repo" && git ls-files -co --exclude-standard)
     else
         files=$(cd "$repo" && find . -type f ! -path './dist/*' ! -path './.git/*')
