@@ -1,0 +1,52 @@
+name: Deployment scripts
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - 'server/**'
+      - 'deploy.sh'
+      - 'ci/build-inside.sh'
+      - 'ci/check-glibc-compat.sh'
+      - 'ci/test-deploy-server.sh'
+      - '.github/workflows/deploy-scripts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy/${{ matrix.os }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            image: ubuntu:22.04
+          - os: rockylinux-8
+            image: rockylinux/rockylinux:8
+          - os: centos-7
+            image: centos:7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: install-client.sh builds and installs the module
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work "${{ matrix.image }}" bash -c '
+            set -e
+            bash deploy/${{ matrix.os }}/install-client.sh
+            ldd /usr/local/lib/nitrokey/libnethsm_pkcs11.so
+            pkcs11-tool --version 2>&1 | head -1 || true'
+      - name: install-client.sh installs from the built tarball
+        run: |
+          tarball=$(ls dist/*-${{ matrix.os }}-*.tar.gz)
+          docker run --rm -v "$PWD:/work" -w /work -e CLIENT_TARBALL="/work/$tarball" \
+            -e CLIENT_LIB=/opt/test/libnethsm_pkcs11.so "${{ matrix.image }}" bash -c '
+            set -e
+            bash deploy/${{ matrix.os }}/install-client.sh
+            test -s /opt/test/libnethsm_pkcs11.so'
+      - name: install-server.sh prepares the server (no upstream build or start)
+        run: docker run --rm -v "$PWD:/work" -w /work "${{ matrix.image }}" bash ci/test-deploy-server.sh "${{ matrix.os }}"
