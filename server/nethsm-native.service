@@ -1,0 +1,18 @@
+# Native NetHSM development system for the PKCS#11 harness lab.
+# Installed by server/install-native-unit.sh. Uses only directives that
+# systemd 219 (CentOS 7) understands. Configure /etc/nethsm-native/nethsm-native.env.
+[Unit]
+Description=Native NetHSM development system (PKCS#11 harness lab)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/nethsm-native/nethsm-native.env
+ExecStart=/usr/local/libexec/nethsm-native/run
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

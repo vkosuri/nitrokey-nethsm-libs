@@ -12,6 +12,15 @@ libraries for: **Ubuntu 22.04 LTS**, **Rocky Linux 8** and **CentOS Linux 7**.
 > (system software), [Nitrokey/nethsm-pkcs11](https://github.com/Nitrokey/nethsm-pkcs11)
 > (PKCS#11 module), [NetHSM docs](https://docs.nitrokey.com/nethsm/).
 
+> **Not the harness lab.** This guide deploys the `nitrokey/nethsm` container
+> as `nethsm.service` on host port **9443**, for applications that use the
+> packaged libraries. The native three-server PKCS#11 harness instead tests the
+> upstream development system started by `nethsm-native.service` from
+> [`server/`](../server/), on port **8443** by default. Start with
+> [00 · Set up the NetHSM lab](00-START-HERE.md) for the harness. To point the
+> harness at a container host instead, name its unit `nethsm-native.service`
+> and set the GitHub environment's `NETHSM_PORT` to 9443.
+
 ---
 
 ## 1. Architecture in one page

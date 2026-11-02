@@ -24,7 +24,13 @@ for target in centos-7 rockylinux-8 ubuntu-22.04; do
 done
 ```
 
-Expect three distinct `Verified OK` results, each followed by the harness PASS line. Each session logs in, signs fresh random bytes and verifies the signature with that server's trusted public key. A TCP connection or successful slot listing alone does not exercise the signing key.
+Expect three distinct `Verified OK` results, each followed by two `Rejected as expected` lines and the harness PASS line. Each run:
+
+- requires a slot whose token label matches `token-label`, and requires that token to offer `SHA256-RSA-PKCS`;
+- logs in, signs fresh random bytes and verifies the signature with that server's trusted public key;
+- repeats the signature with a random wrong PIN, then with the configuration's pinned certificate fingerprint replaced by zeros. Both must fail, and a timeout counts as a failure.
+
+The script refuses a configuration that does not contain the fingerprint from `certificate-sha256` or that sets `danger_insecure_cert: true`. A TCP connection or successful slot listing alone does not exercise the signing key.
 
 | Failure | Check first |
 | --- | --- |
@@ -32,6 +38,8 @@ Expect three distinct `Verified OK` results, each followed by the harness PASS l
 | Connection refused or timed out | DNS, HTTPS port, firewall, server bind address and service state |
 | TLS verification fails | Server-specific certificate fingerprint from step 03 |
 | Login or key lookup fails | Operator PIN, namespace, tags, token label and PKCS#11 key label |
+| `wrong PIN … was accepted` | Whether the configuration file sets an operator password that the module uses instead of the PIN passed to `C_Login`; remove it |
+| `does not match the pinned fingerprint was accepted` | Another configuration file the module merges disables certificate checks; use a dedicated client account |
 | Signature verification fails | Whether this profile contains the public key from this exact server and key pair |
 
 Next: [05 · Run in GitHub Actions](05-RUN-GITHUB-ACTIONS.md).
