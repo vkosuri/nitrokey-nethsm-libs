@@ -1,5 +1,7 @@
 # NetHSM PKCS#11 shared libraries
 
+**Setting up one Ubuntu client and three NetHSM servers?** Start with [00 · Set up the NetHSM lab](docs/00-START-HERE.md) and follow the numbered pages in order.
+
 This repository packages Nitrokey's PKCS#11 module for x86-64 Linux. Choose the artifact built for your distribution. Each filename includes the upstream module version, distribution and architecture.
 
 | Build target | Container image | Maximum glibc |
@@ -22,7 +24,7 @@ The script prints the path to the verified `.tar.gz` in `dist/`. Extract it and 
 
 ## Build and test
 
-Pull requests and pushes to `main` run all three builds. To run the matrix manually, select **Actions → Build and test shared libraries → Run workflow**, or run `gh workflow run build-shared-libs.yml`. The default upstream source is `v3.0.1`. Each build uses the upstream Cargo lockfile.
+Pull requests and pushes to `main` run all three builds. To run the matrix manually, select **Actions ΓåÆ Build and test shared libraries ΓåÆ Run workflow**, or run `gh workflow run build-shared-libs.yml`. The default upstream source is `v3.0.1`. Each build uses the upstream Cargo lockfile.
 
 To reproduce one job on an x86-64 Linux host with Docker, run these commands from the repository root. Use a fresh checkout for the source clone.
 

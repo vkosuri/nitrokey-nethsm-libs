@@ -1,5 +1,7 @@
 # One Ubuntu client, three NetHSM servers
 
+For a first installation, follow [00 · Set up the NetHSM lab](00-START-HERE.md). The numbered pages include the client library installation, per-server configuration and manual verification commands.
+
 Use one dedicated Ubuntu 22.04 x86-64 machine as the application client and GitHub Actions runner. Give only this runner the custom label `nethsm-ubuntu22-client`. The workflow builds the Ubuntu PKCS#11 module once and uses that artifact for all three connections.
 
 | Remote server OS | GitHub environment | Client configuration directory |
