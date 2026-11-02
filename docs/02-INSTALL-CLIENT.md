@@ -9,6 +9,8 @@ sudo apt-get update
 sudo apt-get install -y opensc openssl ca-certificates curl python3 openssh-client
 ```
 
+**Shortcut:** `bash deploy/ubuntu-22.04/install-client.sh` runs every step on this page and installs the module at the path used below. Use the manual steps to understand or customise the process.
+
 `opensc` supplies `pkcs11-tool`. OpenSSL verifies signatures. APT installs the tools' system dependencies. Install the NetHSM provider itself using one of these paths:
 
 **Build on this client** using a clean checkout:

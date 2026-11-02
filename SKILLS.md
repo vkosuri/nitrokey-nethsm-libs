@@ -4,6 +4,7 @@ Use these procedures from the repository root. Choose the row that matches the r
 
 | Task | Entry point | Evidence to collect |
 | --- | --- | --- |
+| Install a lab server or client on any supported OS, locally or over SSH | [deploy/](deploy/README.md) (`remote.sh` for remote hosts) | Detected OS, upstream commit, final API state or installed module path per host |
 | Build a client for a target OS | [deploy.sh](deploy.sh) | Required glibc version, target ceiling and archive checksum result |
 | Test a packaged module on a disposable NetHSM | [Build workflow](.github/workflows/build-shared-libs.yml) | RSA signature verification, decryption round trip and key deletion for each target |
 | Test three native NetHSM servers from Ubuntu | [Native workflow](.github/workflows/native-nethsm.yml) | Expected remote OS and active service, followed by a verified signature for each server |
