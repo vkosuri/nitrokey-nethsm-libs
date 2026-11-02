@@ -22,7 +22,7 @@ case "$ID:${VERSION_ID%%.*}" in
         vault_repos
         yum -y install centos-release-scl
         vault_repos
-        yum -y install devtoolset-11-gcc-c++ make perl curl opensc openssl
+        yum -y --disablerepo=centos-sclo-sclo --setopt='centos-sclo-rh.baseurl=https://vault.centos.org/7.9.2009/sclo/$basearch/rh/' install devtoolset-11-gcc-c++ make perl curl opensc openssl
         export PATH="/opt/rh/devtoolset-11/root/usr/bin:$PATH"
         # CentOS 7 ships CMake 2.8. Install Kitware's glibc-compatible binary.
         curl -fsSL -o /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v3.28.6/cmake-3.28.6-linux-x86_64.tar.gz

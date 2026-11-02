@@ -32,5 +32,6 @@ p11=(pkcs11-tool --module "$module" --slot 0)
 printf 'NetHSM artifact test\n' > message
 "${p11[@]}" --sign --mechanism SHA256-RSA-PKCS --label cikey \
     --input-file message --output-file signature
-"${request[@]}" -u operator:operator-test-only "$api/keys/cikey/public.pem" > public.pem
+"${p11[@]}" --read-object --type pubkey --label cikey --output-file public.der
+openssl pkey -pubin -inform DER -in public.der -out public.pem
 openssl dgst -sha256 -verify public.pem -signature signature message
